@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>連除小遊戲</title>
+<style>
+:root{
+  --bg:#fffaf0; --ink:#2b2b2b; --hl:#ff6b00; --hlbg:#ffe6cc;
+  --blue:#2f7de1; --bluebg:#e6f1ff; --box:#fff0c9; --boxline:#c98a1b; --ok:#2e9e5b;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  touch-action:manipulation;-webkit-user-select:none;user-select:none}
+#app{max-width:980px;margin:0 auto;padding:14px 16px 28px;min-height:100%;display:flex;flex-direction:column;gap:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dots{display:flex;gap:8px}
+.d{width:16px;height:16px;border-radius:50%;background:#e4dccb;display:inline-block}
+.d.now{background:var(--hl)} .d.done{background:var(--ok)}
+.chips{display:flex;gap:8px}
+.chip{width:40px;height:40px;border-radius:50%;background:#efe7d6;color:#9a8f78;font-weight:700;font-size:22px;display:flex;align-items:center;justify-content:center}
+.chip.on{background:var(--hl);color:#fff}
+.intro{font-size:clamp(22px,3.4vw,30px);font-weight:700;text-align:center;line-height:1.4}
+.stage{min-height:150px;background:#fff;border:3px solid #f0e6d0;border-radius:20px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-content:center;justify-content:center}
+.it{font-size:clamp(22px,3.4vw,32px);line-height:1}
+.pack{background:var(--bluebg);border:2px solid var(--blue);border-radius:14px;padding:5px 8px;display:flex;gap:2px}
+.box{background:var(--box);border:3px solid var(--boxline);border-radius:14px;padding:6px;display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.box .pack{padding:2px 5px}
+.box .it{font-size:clamp(16px,2.4vw,22px)}
+.pop{animation:pop .45s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes pop{from{transform:scale(.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+.shake{animation:shake .3s}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
+.eq{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:clamp(36px,7vw,64px);font-weight:800}
+.eq .op{color:#8a7f68}
+.n{min-width:1.2em;text-align:center}
+.hl{color:var(--hl);background:var(--hlbg);border-radius:14px;padding:0 14px;animation:pulse 1.2s infinite}
+.q{background:#fff;border:3px dashed #d9cfb8;border-radius:16px;padding:0 14px;color:#b3a98f}
+.word{font-size:clamp(22px,3.4vw,30px);font-weight:700;color:var(--blue);background:var(--bluebg);border-radius:30px;padding:6px 18px}
+.choices{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{font:inherit;font-weight:800;font-size:clamp(34px,6vw,52px);min-width:110px;min-height:84px;padding:0 26px;border-radius:22px;
+  border:none;background:var(--blue);color:#fff;box-shadow:0 6px 0 #1f5aa8;cursor:pointer}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #1f5aa8}
+.btn.go{background:var(--ok);box-shadow:0 6px 0 #1f7340;min-width:150px}
+.btn.go:active{box-shadow:0 2px 0 #1f7340}
+.row{display:flex;justify-content:center}
+.card{background:#fff;border:3px solid #f0e6d0;border-radius:20px;padding:14px 22px}
+.cards{display:flex;flex-direction:column;gap:14px;align-items:center}
+.lbl{font-size:clamp(20px,3vw,28px);font-weight:700;color:#8a7f68;margin-right:6px}
+.slot{width:clamp(90px,15vw,130px);height:clamp(80px,12vw,104px);border:4px dashed #cbbf9f;border-radius:18px;background:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:clamp(36px,7vw,60px);font-weight:800}
+.slot.over{border-color:var(--hl);background:var(--hlbg)}
+.slot.full{border-style:solid;border-color:var(--ok);background:#e9f8ef}
+.tiles{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;min-height:96px}
+.tile{width:clamp(90px,15vw,120px);height:clamp(80px,12vw,96px);border-radius:20px;background:var(--blue);color:#fff;font-size:clamp(36px,7vw,56px);font-weight:800;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 0 #1f5aa8;touch-action:none;cursor:grab}
+.tile.sel{outline:5px solid var(--hl)}
+.tile.gone{visibility:hidden}
+.ghost{position:fixed;z-index:50;pointer-events:none;transform:translate(-50%,-50%) scale(1.1);opacity:.92}
+.see{display:flex;flex-direction:column;align-items:center;gap:12px}
+.fade{animation:pop .5s both}
+.left{display:flex;align-items:center;gap:16px}
+.back{font:inherit;font-weight:700;font-size:20px;min-height:48px;padding:0 18px;border-radius:24px;border:3px solid #d9cfb8;background:#fff;color:#6b6250;cursor:pointer}
+.back:active{background:#f3ecdb}
+.sumt{font-size:clamp(22px,3.4vw,30px);font-weight:800;text-align:center;margin-bottom:4px}
+.par{color:var(--hl);font-weight:900}
+.eq.tight{--sh:clamp(64px,10vw,90px);font-size:clamp(28px,5vw,48px);gap:8px;align-items:flex-start}
+.eq.tight .slot{width:clamp(72px,11vw,104px);height:var(--sh);font-size:inherit}
+.eq.tight>.op,.eq.tight>.n,.eq.tight .rw>.op,.eq.tight .rw>.par{height:var(--sh);display:flex;align-items:center}
+.eq.tight .col{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.eq.tight .rw{display:flex;align-items:center;justify-content:center;gap:8px}
+.cap{font-size:clamp(16px,2.6vw,22px);font-weight:700;color:var(--hl);border-top:4px solid var(--hl);padding-top:4px;text-align:center;line-height:1.3}
+.og{color:var(--hl);font-weight:900}
+.cards.small .eq{font-size:clamp(28px,5vw,42px);gap:8px}
+.cards.small .card{padding:8px 18px}
+.cards.small{gap:8px}
+.prompt{font-size:clamp(22px,3.4vw,30px);font-weight:700;text-align:center;line-height:1.5}
+.note{font-size:clamp(20px,3vw,28px);font-weight:700;color:var(--ok)}
+.big{font-size:clamp(34px,6vw,54px)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const Q=[
+ {total:36,icon:'✏️',unit:'枝',a:3,b:4,pack:'包',box:'盒',v1:'包成一包',v2:'裝成一盒',
+  intro:'36 枝鉛筆，每 3 枝裝一包，每 4 包裝一盒。',
+  c1:[33,12,39],c2:[8,3,48],tiles:[3,12,36,4]},
+ {total:48,icon:'🍬',unit:'顆',a:2,b:3,pack:'袋',box:'盒',v1:'裝成一袋',v2:'裝成一盒',
+  intro:'48 顆糖，每 2 顆裝一袋，每 3 袋裝一盒。',
+  c1:[96,24,46],c2:[72,8,21],tiles:[2,24,48,3]}
+];
+let qi=0, phase='step1', lock=false, M=null, epoch=0;
+const Ms=[];
+let mu=0; // 乘法頁子步驟 0:一盒幾個 1:除以一盒 2:整合(合併) 3:完成
+let sw=0; // 順序顛倒的子步驟 0:先除 1:再除 2:比一比 3:完成
+const PH=['step1','step2','show','merge','swap','mult'];
+const app=document.getElementById('app');
+
+function head(){
+  const on = phase==='step1'||phase==='step2'?1:phase==='show'?2:3;
+  const showBack = !(qi===0 && phase==='step1') && phase!=='finish';
+  return `<div class="top">
+    <div class="left">${showBack?`<button class="back" id="back">◀ 上一步</button>`:''}
+    <div class="dots">${Q.map((_,i)=>`<i class="d ${i<qi?'done':i===qi?'now':''}"></i>`).join('')}</div></div>
+    <div class="chips">${[1,2,3].map(n=>`<div class="chip ${n===on?'on':''}">${n}</div>`).join('')}</div>
+  </div>`;
+}
+function icons(q,n,cls){return Array.from({length:n},(_,i)=>`<span class="it ${cls||''}" style="animation-delay:${i*12}ms">${q.icon}</span>`).join('')}
+function packEl(q,cls,i){return `<div class="pack ${cls||''}" style="animation-delay:${(i||0)*40}ms">${icons(q,q.a)}</div>`}
+function stage(q,level,anim){
+  const cls=anim?'pop':'';
+  const n1=q.total/q.a, n2=n1/q.b;
+  if(level===0) return `<div class="stage">${icons(q,q.total,cls)}</div>`;
+  if(level===1) return `<div class="stage">${Array.from({length:n1},(_,i)=>packEl(q,cls,i)).join('')}</div>`;
+  return `<div class="stage">${Array.from({length:n2},(_,i)=>
+    `<div class="box ${cls}" style="animation-delay:${i*90}ms">${Array.from({length:q.b},()=>packEl(q,'')).join('')}</div>`).join('')}</div>`;
+}
+function choices(list){return `<div class="choices">${list.map(v=>`<button class="btn" data-v="${v}">${v}</button>`).join('')}</div>`}
+
+function stepCards(q,small,delay){
+  const n1=q.total/q.a, n2=n1/q.b;
+  return `<div class="cards ${small?'small':''}">
+      <div class="card ${small?'':'fade'}"><div class="eq"><span class="lbl">第一步</span><span class="n">${q.total}</span><span class="op">÷</span><span class="n">${q.a}</span><span class="op">＝</span><span class="n hl">${n1}</span></div></div>
+      <div class="card ${small?'':'fade'}" ${small?'':'style="animation-delay:.5s"'}><div class="eq"><span class="lbl">第二步</span><span class="n hl">${n1}</span><span class="op">÷</span><span class="n">${q.b}</span><span class="op">＝</span><span class="n">${n2}</span></div></div>
+    </div>`;
+}
+function render(opts){
+  opts=opts||{};
+  const q=Q[qi], n1=q.total/q.a, n2=n1/q.b;
+  let h=head();
+  if(phase==='step1'){
+    const done=opts.done;
+    h+=`<div class="intro">${q.intro}</div>`;
+    h+=stage(q,done?1:0,done);
+    h+=`<div class="prompt">第一步：先把 <span class="og">${q.a}</span> ${q.unit}${q.v1}</div>`;
+    h+=`<div class="eq"><span class="n">${q.total}</span><span class="op">÷</span><span class="n">${q.a}</span><span class="op">＝</span>${done?`<span class="n">${n1}</span>`:`<span class="n q">？</span>`}<span class="word">幾${q.pack}</span></div>`;
+    h+=done?'':choices(q.c1);
+  } else if(phase==='step2'){
+    const done=opts.done;
+    h+=`<div class="intro">${q.intro}</div>`;
+    h+=stage(q,done?2:1,done);
+    h+=`<div class="prompt">第二步：再把 <span class="og">${q.b}</span> ${q.pack}${q.v2}</div>`;
+    h+=`<div class="eq"><span class="n hl">${n1}</span><span class="op">÷</span><span class="n">${q.b}</span><span class="op">＝</span>${done?`<span class="n">${n2}</span>`:`<span class="n q">？</span>`}<span class="word">幾${q.box}</span></div>`;
+    h+=done?'':choices(q.c2);
+  } else if(phase==='show'){
+    h+=stepCards(q,false)+`<div class="prompt fade" style="animation-delay:1.1s">兩個橘色的 <span class="og">${n1}</span> 一樣，<br>可以合成一個算式嗎？</div>
+    <div class="row fade" style="animation-delay:1.1s"><button class="btn go" id="next">▶</button></div>`;
+  } else if(phase==='merge'){
+    h+=stepCards(q,true)+`<div class="prompt" id="mprompt">把數字拖進空格，合成一個算式</div>
+      <div class="eq" id="meq">
+      <div class="slot" data-s="0"></div><span class="op">÷</span><div class="slot" data-s="1"></div><span class="op">÷</span><div class="slot" data-s="2"></div><span class="op">＝</span><span class="n q" id="res">？</span></div>
+      <div class="tiles" id="tiles">${M.tiles.map((v,i)=>`<div class="tile" data-t="${i}">${v}</div>`).join('')}</div>
+      <div id="after"></div>`;
+  } else if(phase==='swap' || phase==='mult'){
+    const per=q.a*q.b, last=qi===Q.length-1;
+    const sl=Ms[qi]||[q.tiles.indexOf(q.total),q.tiles.indexOf(q.a),q.tiles.indexOf(q.b)];
+    const d1=q.tiles[sl[1]], d2=q.tiles[sl[2]], mid=q.total/d2;
+    const N=v=>`<span class="n">${v}</span>`, O=v=>`<span class="op">${v}</span>`, H=v=>`<span class="n hl">${v}</span>`;
+    const eqRow=(cells,delay)=>`<div class="eq fade" style="animation-delay:${delay}s">${cells}</div>`;
+    const S=v=>`<div class="slot full">${v}</div>`;
+    if(phase==='swap' && sw!==2) h+=`<div class="eq">${S(q.total)}${O('÷')}${S(d1)}${O('÷')}${S(d2)}${O('＝')}${N(n2)}</div>`;
+    if(phase==='swap'){
+      const rot=(arr,k)=>arr.map((_,i)=>arr[(i+k)%arr.length]);
+      const k=(qi+(d1===q.a?1:0))%3;
+      const cMid=rot([q.total-d2,mid,q.total+d2],k), cEnd=rot([mid-d1,n2,mid*d1],k);
+      const Qm=`<span class="n q">？</span>`;
+      if(sw<=1) h+=`<div class="prompt">接下來，我們試試看：<br>把除的順序顛倒，先除 <span class="og">${d2}</span>，再除 <span class="og">${d1}</span></div>`;
+      if(sw<=2) h+=`<div class="cards small">
+          <div class="card"><div class="eq"><span class="lbl">先除 ${d2}</span>${N(q.total)}${O('÷')}${N(d2)}${O('＝')}${sw>=1?H(mid):Qm}</div></div>
+          ${sw>=1?`<div class="card pop"><div class="eq"><span class="lbl">再除 ${d1}</span>${H(mid)}${O('÷')}${N(d1)}${O('＝')}${sw>=2?N(n2):Qm}</div></div>`:''}
+        </div>`;
+      if(sw===0) h+=choices(cMid);
+      else if(sw===1) h+=choices(cEnd);
+      else if(sw===2) h+=`<div class="prompt" id="mprompt">兩個橘色的 <span class="og">${mid}</span> 一樣，<br>把數字拖進空格，合成一個算式</div>
+          <div class="eq" id="meq">
+          <div class="slot" data-s="0"></div><span class="op">÷</span><div class="slot" data-s="1"></div><span class="op">÷</span><div class="slot" data-s="2"></div><span class="op">＝</span><span class="n q" id="res">？</span></div>
+          <div class="tiles" id="tiles">${M.tiles.map((v,i)=>`<div class="tile" data-t="${i}">${v}</div>`).join('')}</div>`;
+      else {
+        h+=`<div class="eq">${S(q.total)}${O('÷')}${S(d2)}${O('÷')}${S(d1)}${O('＝')}${N(n2)}</div>`;
+        if(sw===3) h+=`<div class="prompt">和上面的答案比一比，一樣嗎？</div>
+          <div class="choices"><button class="btn" data-v="1">一樣</button><button class="btn" data-v="0">不一樣</button></div>`;
+        else h+=`<div class="see"><div class="prompt fade">除的順序換過來，答案還是 <span class="og">${n2}</span></div>
+          <button class="btn go fade" style="animation-delay:.5s" id="go1">▶</button></div>`;
+      }
+    } else {
+      const rot=(arr,k)=>arr.map((_,i)=>arr[(i+k)%arr.length]);
+      const k=(qi+1)%3;
+      const cPer=rot([q.a+q.b,per,per+q.b],k), cDiv=rot([q.total-per,n2,q.total+per],k);
+      const Qm=`<span class="n q">？</span>`;
+      const P=v=>`<span class="par">${v}</span>`;
+      if(mu<=1){
+        h+=`<div class="intro">${q.intro}</div>`;
+        h+=`<div class="stage" style="min-height:0"><div class="box pop">${Array.from({length:q.b},()=>packEl(q,'')).join('')}</div></div>`;
+        if(mu===0){
+          h+=`<div class="prompt">第一步：這次我們先算，<br>一盒有幾${q.unit}？</div>`;
+          h+=`<div class="eq">${N(q.a)}${O('×')}${N(q.b)}${O('＝')}${Qm}<span class="word">一${q.box}</span></div>`;
+          h+=choices(cPer);
+        } else {
+          h+=`<div class="prompt">第二步：一盒有 <span class="og">${per}</span> ${q.unit}，<br>${q.total} ${q.unit}可以裝成幾${q.box}？</div>`;
+          h+=`<div class="eq">${N(q.a)}${O('×')}${N(q.b)}${O('＝')}${H(per)}</div>`;
+          h+=`<div class="eq">${N(q.total)}${O('÷')}${H(per)}${O('＝')}${Qm}<span class="word">幾${q.box}</span></div>`;
+          h+=choices(cDiv);
+        }
+      } else {
+        const eqB=(A,X,Y,R)=>`<div class="eq tight"><div class="col"><div class="rw">${A}</div><div class="cap" style="color:var(--blue);border-color:var(--blue)">第二步：分裝</div></div>${O('÷')}<div class="col"><div class="rw">${P('(')}${X}${O('×')}${Y}${P(')')}</div><div class="cap">第一步：算出一盒幾${q.unit}</div></div>${O('＝')}${R}</div>`;
+        h+=`<div class="intro">${q.intro}</div>`;
+        if(mu===2){
+          h+=`<div class="cards small">
+              <div class="card"><div class="eq"><span class="lbl">第一步</span>${N(q.a)}${O('×')}${N(q.b)}${O('＝')}${H(per)}</div></div>
+              <div class="card"><div class="eq"><span class="lbl">第二步</span>${N(q.total)}${O('÷')}${H(per)}${O('＝')}${N(n2)}</div></div>
+            </div>
+            <div class="prompt" id="mprompt">兩個橘色的 <span class="og">${per}</span> 一樣，合成一個算式。<br>先算的 ${q.a}×${q.b}，要用括號括起來</div>
+            ${eqB('<div class="slot" data-s="0"></div>','<div class="slot" data-s="1"></div>','<div class="slot" data-s="2"></div>','<span class="n q" id="res">？</span>')}
+            <div class="tiles" id="tiles">${M.tiles.map((v,i)=>`<div class="tile" data-t="${i}">${v}</div>`).join('')}</div>`;
+        } else {
+          const okM = M && M.mode==='mult' && M.slots.every(x=>x!==null);
+          const sa=okM?M.tiles[M.slots[1]]:q.a, sb=okM?M.tiles[M.slots[2]]:q.b;
+          const slx=Ms[qi]||[q.tiles.indexOf(q.total),q.tiles.indexOf(q.a),q.tiles.indexOf(q.b)];
+          const e1=q.tiles[slx[1]], e2=q.tiles[slx[2]];
+          const old=N(q.total)+O('÷')+N(e1)+O('÷')+N(e2);
+          const swp=N(q.total)+O('÷')+N(e2)+O('÷')+N(e1);
+          const mul=N(q.total)+O('÷')+P('(')+N(sa)+O('×')+N(sb)+P(')');
+          if(mu===3){
+            h+=`<div class="cards small">
+                <div class="card"><div class="eq"><span class="lbl">剛剛</span>${old}${O('＝')}${N(n2)}</div></div>
+                <div class="card"><div class="eq"><span class="lbl">現在</span>${mul}${O('＝')}${N(n2)}</div></div>
+              </div>
+              <div class="prompt">兩個算式的答案，一樣嗎？</div>
+              <div class="choices"><button class="btn" data-v="1">一樣</button><button class="btn" data-v="0">不一樣</button></div>`;
+          } else {
+            h+=`<div class="cards small">
+                <div class="card fade"><div class="sumt">1　除法可以換順序</div><div class="eq">${old}${O('＝')}${swp}</div></div>
+                <div class="card fade" style="animation-delay:.6s"><div class="sumt">2　也可以換成乘法，但要加括號</div><div class="eq">${old}${O('＝')}${mul}</div></div>
+              </div>
+              <div class="see"><button class="btn go fade" style="animation-delay:1.2s" id="go2">${last?'✔':'▶'}</button></div>`;
+          }
+        }
+      }
+    }
+  } else if(phase==='finish'){
+    h+=`<div class="see" style="margin-top:40px"><div style="font-size:96px" class="pop">🎉</div><div class="intro">完成了！</div>
+    <button class="btn go" id="again">↻</button></div>`;
+  }
+  app.innerHTML=h;
+  bind();
+}
+
+function bind(){
+  document.querySelectorAll('.choices .btn').forEach(b=>b.onclick=()=>pick(b));
+  const nx=document.getElementById('next'); if(nx) nx.onclick=()=>{phase='merge';M=newMerge();render()};
+  const ag=document.getElementById('again'); if(ag) ag.onclick=()=>{qi=0;phase='step1';render()};
+  const g1=document.getElementById('go1'); if(g1) g1.onclick=()=>{phase='mult';mu=0;render()};
+  const g2=document.getElementById('go2'); if(g2) g2.onclick=()=>{
+    if(qi===Q.length-1){phase='finish'} else {qi++;phase='step1'}
+    render();
+  };
+  const bk=document.getElementById('back'); if(bk) bk.onclick=goBack;
+  if(phase==='merge' || (phase==='swap' && sw===2) || (phase==='mult' && mu===2)) bindMerge();
+}
+function goBack(){
+  epoch++; lock=false;
+  if(phase==='swap' && sw>0){ sw--; if(sw===2) M=newMerge('swap'); }
+  else if(phase==='mult' && mu>0){ mu--; if(mu===2) M=newMerge('mult'); }
+  else {
+    const i=PH.indexOf(phase);
+    if(i>0) phase=PH[i-1];
+    else if(qi>0){qi--;phase='mult';mu=0}
+    if(phase==='merge') M=newMerge();
+    if(phase==='swap') sw=0;
+    if(phase==='mult') mu=0;
+  }
+  render();
+}
+
+function pickMult(btn){
+  const q=Q[qi], v=+btn.dataset.v, per=q.a*q.b, n2=q.total/per;
+  const ans = mu===0?per : mu===1?n2 : 1;
+  if(v!==ans){btn.classList.remove('shake');void btn.offsetWidth;btn.classList.add('shake');return}
+  mu++;
+  if(mu===2) M=newMerge('mult');
+  render();
+}
+function pickSwap(btn){
+  const q=Q[qi], v=+btn.dataset.v;
+  const sl=Ms[qi], d1=q.tiles[sl[1]], d2=q.tiles[sl[2]], mid=q.total/d2, n2=q.total/q.a/q.b;
+  const ans = sw===0?mid : sw===1?n2 : 1;
+  if(v!==ans){btn.classList.remove('shake');void btn.offsetWidth;btn.classList.add('shake');return}
+  sw++;
+  if(sw===2) M=newMerge('swap');
+  render();
+}
+function pick(btn){
+  if(phase==='swap') return pickSwap(btn);
+  if(phase==='mult') return pickMult(btn);
+  if(lock) return;
+  const q=Q[qi], v=+btn.dataset.v;
+  const ans = phase==='step1' ? q.total/q.a : (q.total/q.a)/q.b;
+  if(v!==ans){btn.classList.remove('shake');void btn.offsetWidth;btn.classList.add('shake');return}
+  lock=true;
+  const was=phase, e=epoch;
+  render({done:true});
+  setTimeout(()=>{ if(e!==epoch) return; lock=false; phase = was==='step1'?'step2':'show'; render()}, was==='step1'?1400:1700);
+}
+
+/* ---- 合併：拖曳或點選 ---- */
+function newMerge(mode){
+  const q=Q[qi];
+  if(mode==='swap'){
+    const sl=Ms[qi], d1=q.tiles[sl[1]], d2=q.tiles[sl[2]], mid=q.total/d2;
+    return {slots:[null,null,null],sel:null,done:false,mode:'swap',tiles:[d1,mid,q.total,d2],target:[q.total,d2,d1]};
+  }
+  if(mode==='mult'){
+    const per=q.a*q.b;
+    return {slots:[null,null,null],sel:null,done:false,mode:'mult',tiles:[q.a,per,q.total,q.b],target:null};
+  }
+  return {slots:[null,null,null],sel:null,done:false,mode:'main',tiles:q.tiles,target:null};
+}
+function rule(q,slot,v){ // 主合併：slot 0 只收總數；slot 1、2 收 a 或 b，且不重複。順序顛倒：每格只收指定數字
+  if(M.target) return v===M.target[slot];
+  if(slot===0) return v===q.total;
+  if(v!==q.a && v!==q.b) return false;
+  const other = M.slots[slot===1?2:1];
+  return other===null || M.tiles[other]!==v;
+}
+function refresh(){
+  const q=Q[qi];
+  document.querySelectorAll('.slot').forEach(s=>{
+    const i=+s.dataset.s, t=M.slots[i];
+    s.textContent = t===null?'':M.tiles[t];
+    s.classList.toggle('full',t!==null);
+  });
+  document.querySelectorAll('.tile').forEach(el=>{
+    const i=+el.dataset.t;
+    el.classList.toggle('gone',M.slots.includes(i));
+    el.classList.toggle('sel',M.sel===i);
+  });
+  if(!M.done && M.slots.every(x=>x!==null)) finishMerge();
+}
+function tryPlace(tile,slot){
+  const q=Q[qi];
+  if(M.slots[slot]!==null) return false;
+  if(!rule(q,slot,M.tiles[tile])){
+    const el=document.querySelector(`.tile[data-t="${tile}"]`);
+    if(el){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')}
+    return false;
+  }
+  M.slots[slot]=tile; M.sel=null; refresh(); return true;
+}
+function bindMerge(){
+  const q=Q[qi];
+  document.querySelectorAll('.slot').forEach(s=>s.onclick=()=>{
+    if(M.done) return;
+    const i=+s.dataset.s;
+    if(M.slots[i]!==null){M.slots[i]=null;refresh();return}
+    if(M.sel!==null) tryPlace(M.sel,i);
+  });
+  document.querySelectorAll('.tile').forEach(el=>{
+    el.addEventListener('pointerdown',e=>{
+      if(M.done) return;
+      e.preventDefault();
+      const t=+el.dataset.t, sx=e.clientX, sy=e.clientY;
+      let ghost=null, moved=false;
+      const mv=ev=>{
+        if(!moved && Math.hypot(ev.clientX-sx,ev.clientY-sy)>8){
+          moved=true; ghost=el.cloneNode(true); ghost.classList.add('ghost'); document.body.appendChild(ghost);
+        }
+        if(ghost){ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';
+          const s=slotAt(ev.clientX,ev.clientY);
+          document.querySelectorAll('.slot').forEach(x=>x.classList.toggle('over',x===s));}
+      };
+      const up=ev=>{
+        document.removeEventListener('pointermove',mv);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',up);
+        document.querySelectorAll('.slot').forEach(x=>x.classList.remove('over'));
+        if(ghost){ghost.remove(); const s=slotAt(ev.clientX,ev.clientY); if(s) tryPlace(t,+s.dataset.s);}
+        else {M.sel = M.sel===t?null:t; refresh();}
+      };
+      document.addEventListener('pointermove',mv);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+    });
+  });
+}
+function slotAt(x,y){const e=document.elementFromPoint(x,y);return e&&e.closest?e.closest('.slot'):null}
+
+function finishMerge(){
+  if(M.mode==='mult'){
+    M.done=true;
+    const tl=document.getElementById('tiles'); if(tl) tl.style.display='none';
+    const mp=document.getElementById('mprompt'); if(mp) mp.style.display='none';
+    const q=Q[qi], res=document.getElementById('res'); res.className='n'; res.textContent=q.total/(q.a*q.b);
+    const e=epoch;
+    setTimeout(()=>{ if(e!==epoch) return; mu=3; render(); },1000);
+    return;
+  }
+  if(M.mode==='swap'){
+    M.done=true;
+    const tl=document.getElementById('tiles'); if(tl) tl.style.display='none';
+    const mp=document.getElementById('mprompt'); if(mp) mp.style.display='none';
+    const q=Q[qi], res=document.getElementById('res'); res.className='n'; res.textContent=q.total/q.a/q.b;
+    const e=epoch;
+    setTimeout(()=>{ if(e!==epoch) return; sw=3; render(); },1000);
+    return;
+  }
+  M.done=true;
+  Ms[qi]=M.slots.map(i=>i);
+  const tl=document.getElementById('tiles'); if(tl) tl.style.display='none';
+  const mp=document.getElementById('mprompt'); if(mp) mp.style.display='none';
+  const q=Q[qi], n2=q.total/q.a/q.b;
+  const res=document.getElementById('res'); res.className='n'; res.textContent=n2;
+  const cs=document.querySelector('.cards.small'); if(cs) cs.style.display='none';
+  const e=epoch;
+  setTimeout(()=>{ if(e!==epoch) return; phase='swap'; sw=0; render(); },1000);
+}
+render();
+</script>
+</body>
+</html>
